@@ -1,0 +1,108 @@
+database ua_dillards;
+
+HELP TABLE deptinfo;
+SHOW TABLE deptinfo;
+SHOW TABLE store_msa;
+SHOW TABLE strinfo;
+HELP TABLE strinfo;
+
+SELECT TOP 10 *
+FROM strinfo
+ORDER BY city;
+
+SELECT *
+FROM strinfo
+SAMPLE .10;
+
+SHOW TABLE skuinfo;
+
+SELECT *
+FROM skuinfo;
+
+SELECT DISTINCT dept, brand
+FROM skuinfo
+WHERE dept=8101;
+
+/*Exercise 4. Examine instances of transaction table where “amt” is different than “sprice”.
+What did you learn about how the values in “amt”, “quantity”, and “sprice” relate to one
+another? */
+SELECT TOP 100 amt, quantity, sprice, orgprice
+FROM trnsact
+ORDER BY amt desc;
+
+/* 5(a) rows in the trsnact table that have “0” in their orgprice column (how could the original
+price be 0?), */
+SELECT TOP 100 orgprice
+FROM trnsact
+ORDER BY amt asc;
+
+/*5 (b) rows in the skstinfo table where both the cost and retail price are listed as 0.00 */
+SELECT DISTINCT cost, retail
+FROM skstinfo
+ORDER BY cost, retail;
+
+/* 5 (c) rows in the skstinfo table where the cost is greater than the retail price (although
+occasionally retailers will sell an item at a loss for strategic reasons, it is very unlikely that a
+manufacturer would provide a suggested retail price that is lower than the cost of the item). */
+SELECT DISTINCT cost, retail
+FROM skstinfo
+ORDER BY retail, cost;
+
+/* Write a query to look at the sale price and date of transactions in the trnsact table */
+SELECT TOP 10 sprice, saledate
+FROM trnsact;
+
+HELP TABLE trnsact;
+
+/* Quiz 7 What was the highest original price in the Dillard’s database of the item with SKU 3631365? */
+SELECT sku, orgprice
+FROM trnsact
+WHERE sku=3631365
+ORDER BY orgprice DESC;
+
+/* Quiz 8. What is the color of the Liz Claiborne brand item with the highest SKU # in the Dillard’s database (the Liz Claiborne brand is abbreviated “LIZ CLAI” in the Dillard’s database)? */
+SELECT sku, brand, color
+FROM skuinfo
+WHERE brand='LIZ CLAI'
+ORDER BY sku DESC;
+
+/* Quiz 10. What is the sku number of the item in the Dillard’s database that had the highest original sales price? */
+SELECT TOP 10 sku, orgprice
+FROM trnsact
+ORDER BY orgprice DESC;
+
+/* Quiz 11. According to the strinfo table, in how many states within the United States are Dillard’s stores located? (HINT: the bottom of the SQL scratchpad reports the number of rows in your output)*/
+SELECT DISTINCT state
+FROM strinfo;
+
+/* Quiz 12. How many Dillard’s departments start with the letter “e”*/
+SELECT *
+FROM deptinfo
+WHERE deptdesc LIKE ('e%');
+
+/* Quiz 13. What was the date of the earliest sale in the database where the sale price of the item did not equal the original price of the item, and what was the largest margin (original price minus sale price) of an item sold on that earliest date? */
+SELECT TOP 10 saledate, orgprice, sprice, (orgprice-sprice) AS margin
+FROM trnsact
+WHERE orgprice <> sprice
+ORDER BY saledate, margin DESC;
+
+/* Quiz 14. What register number made the sale with the highest original price and highest sale price between the dates of August 1, 2004 and August 10, 2004? Make sure to sort by original price first and sale price second.*/
+SELECT TOP 20 register, orgprice, sprice, saledate
+FROM trnsact
+WHERE saledate BETWEEN '2004-08-01' AND '2004-08-10'
+ORDER BY orgprice DESC, sprice DESC;
+
+/* Quiz 15. Which of the following brand names with the word/letters “liz” in them exist in the Dillard’s database? Select all that apply. Note that you will need more than a single correct selection to answer the question correctly. */
+SELECT DISTINCT brand
+FROM skuinfo
+WHERE brand LIKE ('%liz%');
+
+/* Quiz 16. What is the lowest store number of all the stores in the STORE_MSA table that are in the city of “little rock”,”memphis”, or “tulsa”?*/
+SELECT TOP 10 store
+FROM store_msa
+WHERE city IN ('little rock','memphis','tulsa')
+ORDER BY store;
+
+SELECT *
+FROM strinfo
+WHERE city IS NULL OR state IS NULL or zip IS NULL;

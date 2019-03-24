@@ -1,0 +1,188 @@
+database ua_dillards;
+
+/* Exercise 1: (a) Use COUNT and DISTINCT to determine how many distinct skus there are in pairs of the
+skuinfo, skstinfo, and trnsact tables. Which skus are common to pairs of tables, or unique to specific
+tables? */
+SELECT  DISTINCT t.sku as tSku, st.sku as stSku
+FROM (trnsact as t INNER JOIN skstinfo as st ON t.sku=st.sku AND t.store=st.store)
+INNER JOIN skuinfo as su ON t.sku=su.sku;
+
+/*(b) Use COUNT to determine how many instances there are of each sku associated with each store in the
+skstinfo table and the trnsact table? */
+SELECT sku, store
+FROM skstinfo
+ORDER BY sku, store;
+
+SELECT sku, store
+FROM trnsact
+ORDER BY sku, store;
+
+SELECT sk.*, t.*
+FROM skstinfo as sk INNER JOIN trnsact as t 
+     ON sk.sku=t.sku AND sk.store=t.store;
+
+/* Exercise 2: (a) Use COUNT and DISTINCT to determine how many distinct stores there are in the
+strinfo, store_msa, skstinfo, and trnsact tables. */
+SELECT COUNT(DISTINCT store)
+FROM strinfo;
+
+SELECT COUNT(DISTINCT store)
+FROM store_msa;
+
+SELECT COUNT(DISTINCT store)
+FROM skstinfo;
+
+SELECT COUNT(DISTINCT store)
+FROM trnsact;
+
+/*(b) Which stores are common to all four tables, or unique to specific tables? */
+SELECT DISTINCT st.store
+FROM ((strinfo as st INNER JOIN skstinfo as sk ON st.store=sk.store)
+     INNER JOIN trnsact as t ON t.store=st.store)
+     INNER JOIN store_msa as m on st.store=m.store;
+
+/* Exercise 3: It turns out there are many skus in the trnsact table that are not in the skstinfo table. As a
+consequence, we will not be able to complete many desirable analyses of Dillard’s profit, as opposed to
+revenue, because we do not have the cost information for all the skus in the transact table (recall that
+profit = revenue - cost). Examine some of the rows in the trnsact table that are not in the skstinfo table;
+can you find any common features that could explain why the cost information is missing? */
+SELECT *
+FROM trnsact as t LEFT JOIN skstinfo as sk ON t.sku=sk.sku AND t.store=sk.store
+WHERE sk.cost IS NULL;
+
+/* Exercise 4: Although we can’t complete all the analyses we’d like to on Dillard’s profit, we can look at
+general trends. What is Dillard’s average profit per day? */
+SELECT quantity, sprice, amt, stype
+FROM trnsact;
+
+SELECT t.register, SUM(t.amt - (t.quantity*sk.cost)) as Total_Profit, COUNT(DISTINCT saledate) as Total_days,
+ (Total_Profit/Total_days) as Avg_profit_per_day
+FROM trnsact as t LEFT JOIN skstinfo as sk ON t.store=sk.store AND t.sku=sk.sku
+WHERE t.register=640 AND t.stype='P'
+GROUP BY t.register;
+
+
+/* Exercise 5: On what day was the total value (in $) of returned goods the greatest? On what day was the
+total number of individual returned items the greatest? */
+SELECT EXTRACT(DAY from saledate) as mday, SUM(amt*quantity) as total_value, COUNT(amt*quantity) as total_items
+FROM trnsact
+WHERE stype='R'
+GROUP BY mday
+ORDER BY total_value DESC, total_items DESC
+
+/* Exercise 6: What is the maximum price paid for an item in our database? What is the minimum price
+paid for an item in our database? */
+SELECT MAX(amt) as max_price, MIN(amt) as min_price
+FROM trnsact
+WHERE stype='P';
+
+/* Exercise 7: How many departments have more than 100 brands associated with them, and what are their
+descriptions? */
+SELECT d.dept, COUNT(DISTINCT su.brand) as Number_of_brands, d.deptdesc
+FROM deptinfo as d LEFT JOIN skuinfo as su ON d.dept=su.dept
+WHERE su.brand IS NOT NULL
+GROUP BY d.dept, d.deptdesc
+HAVING Number_of_brands > 100
+
+/* Exercise 8: Write a query that retrieves the department descriptions of each of the skus in the skstinfo
+table. */
+SELECT DISTINCT sk.sku, d.deptdesc
+FROM (skstinfo as sk LEFT JOIN skuinfo as su ON sk.sku=su.sku)
+     LEFT JOIN deptinfo as d ON d.dept=su.dept
+WHERE sk.sku=5020024;
+
+/* Exercise 9: What department (with department description), brand, style, and color had the greatest total
+value of returned items? */
+SELECT d.dept, d.deptdesc, su.brand, su.style, su.color, SUM(t.amt) as total_value
+FROM (deptinfo as d LEFT JOIN skuinfo as su ON d.dept=su.dept)
+     LEFT JOIN trnsact as t ON t.sku=su.sku
+WHERE t.stype='R'
+GROUP BY d.dept,d.deptdesc, su.brand, su.style, su.color
+ORDER BY total_value DESC;
+
+/* Exercise 10: In what state and zip code is the store that had the greatest total revenue during the time
+period monitored in our dataset? */
+SELECT m.state, m.zip, m.city, SUM(t.amt) as total_rev
+FROM trnsact as t LEFT JOIN store_msa as m ON m.store=t.store
+WHERE t.stype='P'
+GROUP BY m.state, m.zip, m.city
+ORDER BY total_rev DESC;
+
+/*********************************************************** QUIZ - WEEK 3 **************************************************************/
+
+/* 3. On what day was Dillard’s income based on total sum of purchases the greatest */
+SELECT TOP 10 saledate, SUM(amt) as total_value, stype
+FROM trnsact
+WHERE stype='P'
+GROUP BY saledate, stype
+ORDER BY total_value DESC;
+
+/* 4. What is the deptdesc of the departments that have the top 3 greatest numbers of skus from the skuinfo table associated with them? */
+SELECT d.dept, COUNT(DISTINCT su.sku) as Number_of_skus, d.deptdesc
+FROM deptinfo as d LEFT JOIN skuinfo as su ON d.dept=su.dept
+GROUP BY d.dept, d.deptdesc
+ORDER BY Number_of_skus DESC;
+
+/* 5. Which table contains the most distinct sku numbers? */
+SELECT COUNT(DISTINCT sku)
+FROM skstinfo
+
+SELECT COUNT(DISTINCT sku)
+FROM skuinfo
+
+SELECT COUNT(DISTINCT sku)
+FROM trnsact
+
+/* 6. How many skus are in the skstinfo table, but NOT in the skuinfo table? */
+SELECT COUNT(DISTINCT sk.sku) as num_sku
+FROM skuinfo as su RIGHT JOIN skstinfo as sk ON sk.sku=su.sku
+WHERE su.sku IS NULL
+
+/* 7. What is the average amount of profit Dillard’s made per day? */
+SELECT SUM(t.amt - (t.quantity*sk.cost)) as Total_Profit, COUNT(DISTINCT saledate) as Total_days,
+ (Total_Profit/Total_days) as Avg_profit_per_day
+FROM trnsact as t LEFT JOIN skstinfo as sk ON t.store=sk.store AND t.sku=sk.sku
+WHERE t.stype='P'
+
+/* 8.  how many MSAs are there within the state of North Carolina (abbreviated “NC”), and within these MSAs, what is the lowest population level (msa_pop) and highest income level (msa_income)? */
+SELECT COUNT(DISTINCT store) as num_msa, min(msa_pop), max(msa_income)
+FROM store_msa
+WHERE state='NC';
+
+/* 9. What department (with department description), brand, style, and color brought in the greatest total amount of sales? */
+SELECT d.dept, d.deptdesc, su.brand, su.style, su.color, SUM(t.amt) as total_value
+FROM (deptinfo as d LEFT JOIN skuinfo as su ON d.dept=su.dept)
+     LEFT JOIN trnsact as t ON t.sku=su.sku
+WHERE t.stype='P'
+GROUP BY d.dept,d.deptdesc, su.brand, su.style, su.color
+ORDER BY total_value DESC;
+
+/* 10. How many stores have more than 180,000 distinct skus associated with them in the skstinfo table? */
+SELECT store, COUNT(DISTINCT sku) as num_skus
+FROM skstinfo
+GROUP BY store
+HAVING num_skus > 180000
+
+/* 11. */
+SELECT DISTINCT d.dept, d.deptdesc, su.sku, su.brand, su.color, su.style, su.size, su.vendor, su.packsize
+FROM deptinfo as d LEFT JOIN skuinfo as su ON d.dept=su.dept
+WHERE deptdesc='cop' AND brand='federal' AND color='rinse wash'
+GROUP BY d.dept, d.deptdesc, su.sku, su.brand, su.color, su.style, su.size, su.vendor, su.packsize
+
+/* 12. How many skus are in the skuinfo table, but NOT in the skstinfo table? */
+SELECT COUNT(DISTINCT su.sku) as num_sku
+FROM skuinfo as su LEFT JOIN skstinfo as sk ON sk.sku=su.sku
+WHERE sk.sku IS NULL
+
+/* 15. How many states have more than 10 Dillards stores in them? */
+SELECT state, COUNT(DISTINCT store) as num_stores
+FROM strinfo
+GROUP BY state
+HAVING num_stores > 10;
+
+/* 16. What is the suggested retail price of all the skus in the “reebok” department with the “skechers” brand and a “wht/saphire” color? */
+SELECT d.deptdesc, t.orgprice, su.sku, su.color
+FROM (deptinfo as d LEFT JOIN skuinfo as su ON d.dept=su.dept)
+     LEFT JOIN trnsact as t ON t.sku=su.sku
+WHERE t.stype='P' AND d.deptdesc='reebok' AND brand='skechers' AND color='wht/saphire'
+GROUP BY d.deptdesc, t.orgprice, su.sku, su.color
